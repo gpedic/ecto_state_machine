@@ -24,21 +24,21 @@ defmodule EctoStateMachineTest do
 
       changeset = User.confirm(context[:confirmed_user])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :confirmed to :confirmed", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :confirmed to :confirmed", []}]
 
       changeset = User.confirm(context[:blocked_user])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :blocked to :confirmed", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :blocked to :confirmed", []}]
 
       changeset = User.confirm(context[:admin])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :admin to :confirmed", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :admin to :confirmed", []}]
     end
 
     test "#block", context do
       changeset = User.block(context[:unconfirmed_user])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :unconfirmed to :blocked", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :unconfirmed to :blocked", []}]
 
       changeset = User.block(context[:confirmed_user])
       assert changeset.valid?            == true
@@ -46,7 +46,7 @@ defmodule EctoStateMachineTest do
 
       changeset = User.block(context[:blocked_user])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :blocked to :blocked", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :blocked to :blocked", []}]
 
       changeset = User.block(context[:admin])
       assert changeset.valid?            == true
@@ -56,7 +56,7 @@ defmodule EctoStateMachineTest do
     test "#make_admin", context do
       changeset = User.make_admin(context[:unconfirmed_user])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :unconfirmed to :admin", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :unconfirmed to :admin", []}]
 
       changeset = User.make_admin(context[:confirmed_user])
       assert changeset.valid?            == true
@@ -64,11 +64,11 @@ defmodule EctoStateMachineTest do
 
       changeset = User.make_admin(context[:blocked_user])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :blocked to :admin", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :blocked to :admin", []}]
 
       changeset = User.make_admin(context[:admin])
       assert changeset.valid? == false
-      assert changeset.errors == [rules: {"You can't move state from :admin to :admin", []}]
+      assert changeset.errors == [rules: {"Invalid state transition :admin to :admin", []}]
     end
   end
 
@@ -93,6 +93,28 @@ defmodule EctoStateMachineTest do
       assert User.can_make_admin?(context[:blocked_user])     == false
       assert User.can_make_admin?(context[:admin])            == false
     end
+  end
+
+  describe "valid_?" do
+    test "#valid_transition?", context do
+      refute User.valid_transition?(context[:blocked_user], :admin)
+      refute User.valid_transition?(context[:blocked_user], :blocked)
+      refute User.valid_transition?(context[:blocked_user], :confirmed)
+      refute User.valid_transition?(context[:blocked_user], :does_not_exist)
+
+      assert User.valid_transition?(context[:unconfirmed_user], :confirmed)
+      assert User.valid_transition?(context[:confirmed_user], :admin)
+      assert User.valid_transition?(context[:confirmed_user], :blocked)
+    end
+  end
+
+  test "#resolve_transition", context do
+    assert {:ok, %{name: :confirm}} = User.resolve_transition(context[:unconfirmed_user], :confirmed)
+  end
+
+  test "#apply_transition", context do
+    assert %{valid?: true} = User.apply_transition(context[:unconfirmed_user], :confirm)
+    assert %{valid?: false} = User.apply_transition(context[:unconfirmed_user], :make_admin)
   end
 
   test "#states" do

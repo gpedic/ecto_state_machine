@@ -45,7 +45,29 @@ defmodule EctoStateMachine do
         def unquote(:"can_#{event[:name]}?")(model) do
           :"#{Map.get(model, unquote(column))}" in unquote(event[:from])
         end
+
+        def valid_transition?(model, unquote(event[:to])) do
+          state = :"#{Map.get(model, unquote(column))}"
+          state in unquote(event[:from])
+        end
+
+        def resolve_transition(model, unquote(event[:to])) do
+          state = :"#{Map.get(model, unquote(column))}"
+          cond do
+            state == unquote(event[:to]) ->
+              {:ok, nil}
+            state in unquote(event[:from]) ->
+              {:ok, %{name: unquote(event[:name])}}
+            true -> {:error, :invalid}
+          end
+        end
       end)
+
+      def valid_transition?(_, _), do: false
+
+      def apply_transition(model, name) do
+        apply(__MODULE__, name, [model])
+      end
 
       defp validate_state_transition(changeset, event, model) do
         change = Map.get(model, unquote(column))
@@ -55,7 +77,7 @@ defmodule EctoStateMachine do
         else
           changeset
           |> Changeset.add_error(unquote(column),
-            "You can't move state from :#{change} to :#{event[:to]}"
+            "Invalid state transition :#{change} to :#{event[:to]}"
             )
         end
       end
