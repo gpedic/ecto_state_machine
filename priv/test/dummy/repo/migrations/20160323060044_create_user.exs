@@ -4,7 +4,7 @@ defmodule Dummy.Repo.Migrations.CreateUser do
   def change do
     create table(:users) do
       add :rules, :string, null: false
-      add :confirmed_at, :datetime
+      add :confirmed_at, :utc_datetime
     end
   end
 end

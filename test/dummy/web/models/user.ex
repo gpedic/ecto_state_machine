@@ -9,7 +9,7 @@ defmodule Dummy.User do
         name:     :confirm,
         from:     [:unconfirmed],
         to:       :confirmed,
-        callback: fn(model) -> Ecto.Changeset.change(model, confirmed_at: Ecto.DateTime.utc) end
+        callback: fn(model) -> Ecto.Changeset.change(model, confirmed_at: DateTime.utc_now()) end
       ], [
         name:     :block,
         from:     [:confirmed, :admin],
